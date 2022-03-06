@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 Created on Mar 5, 2022
 
@@ -6,13 +7,29 @@ Created on Mar 5, 2022
 from collections import namedtuple
 import os
 
-from process_data import DataPrepper
-from train import EmpathyTrainer
+from empathy_data_prepper import DataPrepper
+from empathy_classification_trainer import EmpathyTrainer
 
 
 class RedditModelBuilder:
     '''
-    classdocs
+    Running this file creates an instance of this class.
+    The all three Reddit based empathy models are constructed
+    and placed into subdir reddit_models:
+    
+         o emotional_reactions_reddit_model.pth
+         o explorations_reddit_model.pth
+         o interpretations_reddit_model.pth
+    
+    The training files are, respectively:
+    
+         o emotional-reactions-reddit.csv
+         o explorations-reddit.csv
+         o interpretations-reddit.csv
+         
+    The build process first tokenizes and otherwise prepares
+    these .csv files into formats suitable for training.
+    Then the training is executed. 
     '''
 
     #------------------------------------

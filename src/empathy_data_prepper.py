@@ -9,6 +9,20 @@ from transformers import RobertaTokenizer
 import numpy as np
 
 class DataPrepper:
+    '''
+    An alternative to using process_data.py. The advantage
+    is that this version can be used from the command line,
+    like the original. But this class can also be imported
+    and used in a workflow.
+    
+    An instance of this class takes a raw input file, such
+    as sample_input_ER.csv, emotional-reactions-reddit.csv,
+    or interpretations-reddit.csv.
+    
+    The instance tokenizes and otherwise process the input
+    file to create a corresponding file that is suitable 
+    for training a model.
+    '''
 
     #------------------------------------
     # Constructor

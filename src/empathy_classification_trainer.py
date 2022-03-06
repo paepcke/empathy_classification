@@ -19,6 +19,21 @@ from evaluation_utils import flat_accuracy, flat_accuracy_rationale, compute_f1,
 
 
 class EmpathyTrainer:
+    '''
+    This class and __main__ section is an alternative to using
+    the train.py file for training. The difference is that 
+    this version is written as a class, and can therefore be
+    used either from the command line or be imported into a
+    workflow. Additionally, several library calls have been updated
+    to current versions.
+    
+    All modeling parameters, training and destination paths are
+    passed to __init__() in one data structure as documented in 
+    that method. The structure must have the same API as the
+    one returned by argparse.parse_args(). An alternative data type
+    is a namedtuple. See build_reddit_models.py for an example.
+       
+    '''
 
     #------------------------------------
     # Constructor 
@@ -109,7 +124,7 @@ class EmpathyTrainer:
         '''
         Do not finetune seeker encoder
         '''
-        params = list(model.named_parameters())
+        _params = list(model.named_parameters())
         for p in model.seeker_encoder.parameters():
             p.requires_grad = False
         
