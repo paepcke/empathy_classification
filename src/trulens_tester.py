@@ -4,23 +4,24 @@ Created on Mar 21, 2022
 @author: paepcke
 '''
 
-import os
 import logging
-import importlib
-import webbrowser
+import os
 import tempfile
+import time
+import webbrowser
+
+import matplotlib
+import torch
+from transformers import RobertaTokenizer
+from trulens import visualizations as viz
+from trulens.nn.attribution import IntegratedGradients
+from trulens.nn.models import get_model_wrapper
+from trulens.nn.slices import Cut, OutputCut
+from trulens.utils import tru_logger
 
 from empathy_classifier import EmpathyClassifier
-import torch
 import pandas as pd
-from transformers import RobertaTokenizer
 
-from trulens.nn.attribution import IntegratedGradients
-from trulens.nn.slices import Cut, OutputCut
-from trulens.nn.models import get_model_wrapper
-from trulens import visualizations as viz
-
-from trulens.utils import tru_logger
 
 # Empathy:
 class TruLensTester:
@@ -137,7 +138,7 @@ class TruLensTester:
         # You examine them separately. First, the responder_encoder.
         # Follow the same steps for the seeker_encoder by
         # replacing 'responder_encoder' in the Cut() below:
-        self.logger.log(logging.INFO,"Computing inegrated gradients") 
+        self.logger.log(logging.INFO,"Computing integrated gradients") 
         infl_max_ER = IntegratedGradients(
             model = ER_task.wrapper,
             doi_cut=Cut('responder_encoder_roberta_embeddings_word_embeddings'),
@@ -221,20 +222,47 @@ class TruLensTester:
         # in a terminal or in Jupyer/Colab. When possible, 
         # attribution strength will be shown as text colors:
         out_frags = []
-        render_platform = self.isnotebook()
-        self.logger.log(logging.INFO,f"Running in a {render_platform}")
-        if render_platform == 'terminal':
-            renderer = viz.PlainText()
-        else:
+        self.render_platform = self.isnotebook()
+        # self.logger.log(logging.INFO,f"Running in a {self.render_platform}")
+        
+        try:
             renderer = viz.IPython()
-
-        self.logger.log(logging.INFO,f"Renderer is of type {type(renderer)}")
+        except ImportError:
+            # TruLens cannot find IPython
+            renderer = viz.PlainText()
+        
+        #self.logger.log(logging.INFO,f"Renderer is of type {type(renderer)}")
         # For each word, have TruLens create a string
         # snippet for the final output:
         for word, magnitude in word_attributions:
             out_frags.append(renderer.magnitude_colored(word, magnitude))
-        # Create one output string:
-        output = ' '.join(out_frags)
+        #**********
+        # Use alternative color scheme
+        words     = [word_info[0] for word_info in word_attributions]
+        attr_mags = [word_info[1] for word_info in word_attributions]
+
+        # Pick a colormap; see https://matplotlib.org/3.5.1/tutorials/colors/colormaps.html:
+        cmap = matplotlib.cm.get_cmap('BuGn')
+        
+        # Map logits to [0,1]:
+        normed_mags = matplotlib.colors.Normalize(vmin=min(attr_mags), 
+                                                  vmax=max(attr_mags))(attr_mags)
+        
+        # Pick colors from the colormap, proportional to logit value:
+        colors = []
+        for mag in normed_mags:
+            # Pick color from colormap, dropping the
+            # (always 255) opacity value:
+            colors.append(cmap(mag, bytes=True)[:3])
+            
+        # Get the whole sentence as HTML, escaping occurrences
+        # of '<':
+        output = ' '.join([f"<span title='{mag:0.3f}' style='margin: 1px; padding: 1px; border-radius: 4px; background: black; color: rgb{color};'>{word.replace('<', '&lt')}</span>"
+                           for word, color, mag
+                           in zip(words, colors, attr_mags)])
+        if self.render_platform == 'terminal':
+            self.render_to_web(output)
+        #**********        
         
         return (renderer, output)
 
@@ -358,18 +386,32 @@ class TruLensTester:
     # render_to_web
     #-------------------
     
-    # def render_to_web(self, output):
-    #     '''
-    #     Given an HTML string, open the default browser, and
-    #     display the string there.
-    #
-    #     :param output: HTML to display
-    #     :type output: str
-    #     '''
-    #     with tempfile.NamedTemporaryFile(prefix='attrs_') as fd:
-    #         fd.write(output)
-    #         webbrowser.open_new_tab(f"file://{fd.name}")
+    def render_to_web(self, output):
+        '''
+        Given an HTML string, open the default browser, and
+        display the string there.
         
+        The name of a temp file is returned. It will be 
+    
+        :param output: HTML to display
+        :type output: str
+        :return temp file path
+        :rtype str
+        '''
+        fd = tempfile.NamedTemporaryFile(prefix='attrs_', suffix='.html')
+        fd.write(bytes('<html>', 'utf8'))
+        fd.write(bytes(output, 'utf8'))
+        fd.write(bytes('</html>', 'utf8'))
+        fd.flush()
+        self.logger.info("Opening page in browser...")
+        webbrowser.open_new_tab(f"file://{fd.name}")
+        # Terrible hack! Must ensure the browser has read
+        # the file before removing the temp file. The right
+        # way would be to check for presence of some page
+        # element:
+        time.sleep(5)
+        return fd.name
+    
 
 # -------------TruLens Wrapper Models -----------------
 
@@ -395,4 +437,5 @@ class TruLensEmpathyWrapper:
 if __name__ == '__main__':
     tester = TruLensTester()
     tester.renderer.render(tester.output)
+
 
