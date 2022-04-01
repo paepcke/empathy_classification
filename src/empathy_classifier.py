@@ -26,13 +26,13 @@ class EmpathyClassifier():
         self.model_IP = BiEncoderAttentionWithRationaleClassification()
         self.model_EX = BiEncoderAttentionWithRationaleClassification()
 
-        ER_weights = torch.load(ER_model_path)
+        ER_weights = torch.load(ER_model_path, map_location=device)
         self.model_ER.load_state_dict(ER_weights)
 
-        IP_weights = torch.load(IP_model_path)
+        IP_weights = torch.load(IP_model_path, map_location=device)
         self.model_IP.load_state_dict(IP_weights)
 
-        EX_weights = torch.load(EX_model_path)
+        EX_weights = torch.load(EX_model_path, map_location=device)
         self.model_EX.load_state_dict(EX_weights)
 
         self.model_ER.to(self.device)
