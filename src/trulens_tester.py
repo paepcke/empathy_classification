@@ -45,13 +45,21 @@ class TruLensTester:
 
         cur_dir = os.path.dirname(__file__)
         self.empathy_proj_root = os.path.abspath(os.path.join(cur_dir, '..'))
-        self.renderer, self.output = self.verify_empathy()
+        
+        # Get a TruLens renderer, which knows how to output
+        # the input text with colored words, proportional in
+        # intensity to the logits. Assuming this instance is
+        # assigned to variable 'tester', output is produced
+        # via
+        #       tester.renderer.render(tester.output)
+        
+        self.renderer, self.output = self.analyze_empathy()
 
     #------------------------------------
-    # verify_empathy
+    # analyze_empathy
     #-------------------
 
-    def verify_empathy(self):
+    def analyze_empathy(self):
         '''
         Creates the project's three models:
         empathy emotional reaction, interpretation, 
